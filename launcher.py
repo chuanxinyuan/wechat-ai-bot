@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(_MEIPASS))
 def _first_run_init():
     data_dir = get_data_dir()
     bundled_files = ['personas.json', 'whitelist.json']
+    bundled_dirs = ['skills']
     for fname in bundled_files:
         dest = os.path.join(data_dir, fname)
         if not os.path.exists(dest):
@@ -38,6 +39,16 @@ def _first_run_init():
             if os.path.exists(src):
                 import shutil
                 shutil.copy(src, dest)
+
+    for dname in bundled_dirs:
+        dest_dir = os.path.join(data_dir, dname)
+        if not os.path.exists(dest_dir):
+            src_dir = os.path.join(_MEIPASS, dname)
+            if not os.path.exists(src_dir):
+                src_dir = os.path.join(os.path.dirname(_MEIPASS), dname)
+            if os.path.exists(src_dir):
+                import shutil
+                shutil.copytree(src_dir, dest_dir)
 
     # Clean old files from EXE directory (migrated to data dir)
     if getattr(sys, 'frozen', False):
@@ -71,6 +82,7 @@ from token_patch import (
 )
 import bot_state
 import persona_engine
+import skill_manager
 from data_dir import get_data_dir, get_log_path
 
 # --- Globals ---
@@ -144,10 +156,19 @@ def bot_thread_main(qr_dir, on_qr_ready, on_login_ok, on_logout_handler):
                 print(f"[Bot] Skipping (not in whitelist)")
                 return
 
-            # Build persona prompt with long-term facts
+            # Build persona prompt with long-term facts + skills
             system_prompt = persona_engine.get_persona_prompt(
                 display_name, nick=contact_name, remark=remark
             )
+            # Add global skills
+            global_skills = skill_manager.get_global_skills_prompt()
+            if global_skills:
+                system_prompt += "\n" + global_skills
+            # Add per-contact skills
+            contact_skills = skill_manager.get_contact_skills_prompt(display_name)
+            if contact_skills:
+                system_prompt += "\n" + contact_skills
+            # Add long-term facts
             facts_prompt = long_term_memory.build_facts_prompt(display_name)
             if facts_prompt:
                 system_prompt += "\n" + facts_prompt

@@ -255,3 +255,73 @@ def api_status():
         'last_error': bs['last_error'],
         'token_status': get_token_status(),
     })
+
+
+@app.route("/api/skills")
+def api_skills():
+    import skill_manager
+    return jsonify({
+        "skills": skill_manager.list_skills(),
+        "global": skill_manager.load_skills_config().get("global", []),
+        "contacts": skill_manager.load_skills_config().get("contacts", {}),
+    })
+
+
+@app.route("/api/skills/content/<skill_id>")
+def api_skills_content(skill_id):
+    import skill_manager
+    prompt = skill_manager.get_skill_prompt(skill_id)
+    return prompt if prompt else ("", 404)
+
+
+@app.route("/api/skills/save", methods=["POST"])
+def api_skills_save():
+    import skill_manager
+    data = request.json
+    name = data.get("name", "").strip()
+    content = data.get("content", "").strip()
+    description = data.get("description", "").strip()
+    if not name or not content:
+        return jsonify({"error": "名称和内容不能为空"}), 400
+    try:
+        sid = skill_manager.save_skill(name, content, description)
+        return jsonify({"ok": True, "id": sid})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/skills/delete", methods=["POST"])
+def api_skills_delete():
+    import skill_manager
+    sid = request.json.get("skill_id", "")
+    if not sid:
+        return jsonify({"error": "缺少skill_id"}), 400
+    try:
+        skill_manager.delete_skill(sid)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/skills/assign", methods=["POST"])
+def api_skills_assign():
+    import skill_manager
+    data = request.json
+    sid = data.get("skill_id", "")
+    cn = data.get("contact_name", "")
+    action = data.get("action", "add")
+    config = skill_manager.load_skills_config()
+    if cn:
+        config.setdefault("contacts", {}).setdefault(cn, [])
+        if action == "add" and sid not in config["contacts"][cn]:
+            config["contacts"][cn].append(sid)
+        elif action == "remove" and sid in config["contacts"][cn]:
+            config["contacts"][cn].remove(sid)
+    else:
+        config.setdefault("global", [])
+        if action == "add" and sid not in config["global"]:
+            config["global"].append(sid)
+        elif action == "remove" and sid in config["global"]:
+            config["global"].remove(sid)
+    skill_manager.save_skills_config(config)
+    return jsonify({"ok": True})

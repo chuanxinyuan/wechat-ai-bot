@@ -1,363 +1,146 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>微信 AI 管理</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #f0f2f5;
-  color: #333;
-  padding: 20px;
-}
-.container { max-width: 900px; margin: 0 auto; }
-h1 { font-size: 22px; margin-bottom: 4px; color: #1a1a2e; }
-.card {
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: box-shadow 0.2s;
-}
-.card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.contact-name { font-weight: 600; color: #222; font-size: 15px; }
-.contact-sub { color: #999; font-size: 12px; margin-top: 2px; }
-.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle label {
-  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background: #d9d9d9; border-radius: 24px; transition: .3s;
-}
-.toggle label::before {
-  content: ""; position: absolute; width: 20px; height: 20px;
-  left: 2px; bottom: 2px; background: #fff; border-radius: 50%;
-  transition: .3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.toggle input:checked + label { background: #52c41a; }
-.toggle input:checked + label::before { transform: translateX(20px); }
-.online { color: #52c41a; font-size: 12px; }
-.offline { color: #999; font-size: 12px; }
-.form-group { margin-bottom: 10px; }
-.form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; font-weight: 500; }
-.form-group input, .form-group textarea, .form-group select {
-  width: 100%; padding: 9px 12px;
-  background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px;
-  color: #333; font-size: 13px; outline: none; transition: border-color 0.2s;
-}
-.form-group input:focus, .form-group textarea:focus { border-color: #1677ff; background: #fff; }
-.form-group textarea { min-height: 60px; resize: vertical; font-family: inherit; }
-.btn { padding: 7px 18px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
-.btn-primary { background: #1677ff; color: #fff; }
-.btn-primary:hover { background: #4096ff; }
-.btn-danger { background: #fff; color: #ff4d4f; border: 1px solid #ff4d4f; }
-.btn-danger:hover { background: #fff1f0; }
-.btn-sm { padding: 4px 12px; font-size: 12px; }
-.btn-outline { background: #fff; border: 1px solid #d9d9d9; color: #666; }
-.btn-outline:hover { border-color: #1677ff; color: #1677ff; }
-.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.expand-btn {
-  background: none; border: none; color: #1677ff; cursor: pointer;
-  font-size: 13px; padding: 4px 0; margin-top: 4px;
-}
-.expand-btn:hover { opacity: 0.8; }
-.editor { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
-.editor.open { display: block; }
-.badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
-.badge-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
-.badge-gray { background: #fafafa; color: #999; border: 1px solid #e8e8e8; }
-.toast {
-  position: fixed; bottom: 24px; right: 24px;
-  background: #fff; border: 1px solid #e8e8e8; padding: 12px 24px;
-  border-radius: 10px; font-size: 14px; display: none; z-index: 100;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-}
-.toast.success { border-left: 3px solid #52c41a; }
-.toast.error { border-left: 3px solid #ff4d4f; }
-.header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-.header-bar h1 { font-size: 24px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-.status-dot.green { background: #52c41a; }
-.status-dot.red { background: #ff4d4f; }
-.tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: #fff; border-radius: 10px; padding: 4px; border: 1px solid #e8e8e8; }
-.tab {
-  padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;
-  background: transparent; border: none; color: #999; font-weight: 500;
-}
-.tab.active { background: #1677ff; color: #fff; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-.empty-state { text-align: center; padding: 40px; color: #bbb; font-size: 14px; }
-.search-card input {
-  width: 100%; padding: 10px 14px;
-  background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 8px;
-  color: #333; font-size: 14px; outline: none;
-}
-.search-card input:focus { border-color: #1677ff; background: #fff; }
-.saved-indicator {
-  display: inline-block; color: #52c41a; font-size: 12px;
-  margin-left: 8px; opacity: 0; transition: opacity 0.3s;
-}
-.saved-indicator.show { opacity: 1; }
-.persona-summary {
-  font-size: 12px; color: #999; margin-top: 4px;
-  display: none;
-}
-.persona-summary.visible { display: block; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#333;padding:20px}
+.container{max-width:960px;margin:0 auto}
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:16px;margin-bottom:12px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.contact-name{font-weight:600;color:#222;font-size:15px}
+.contact-sub{color:#999;font-size:12px;margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle label{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#d9d9d9;border-radius:24px;transition:.3s}
+.toggle label::before{content:"";position:absolute;width:20px;height:20px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+label{background:#52c41a}
+.toggle input:checked+label::before{transform:translateX(20px)}
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:13px;color:#666;margin-bottom:4px;font-weight:500}
+.form-group input,.form-group textarea{width:100%;padding:9px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;color:#333;font-size:13px;outline:none}
+.form-group input:focus,.form-group textarea:focus{border-color:#1677ff;background:#fff}
+.form-group textarea{min-height:60px;resize:vertical;font-family:inherit}
+.btn{padding:7px 18px;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-primary{background:#1677ff;color:#fff}.btn-primary:hover{background:#4096ff}
+.btn-danger{background:#fff;color:#ff4d4f;border:1px solid #ff4d4f}.btn-danger:hover{background:#fff1f0}
+.btn-sm{padding:4px 12px;font-size:12px}
+.btn-outline{background:#fff;border:1px solid #d9d9d9;color:#666}
+.btn-outline:hover{border-color:#1677ff;color:#1677ff}
+.btn-green{background:#52c41a;color:#fff}.btn-green:hover{background:#73d13d}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.expand-btn{background:none;border:none;color:#1677ff;cursor:pointer;font-size:13px;padding:4px 0;margin-top:4px}
+.expand-btn:hover{opacity:.8}
+.editor{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0}
+.editor.open{display:block}
+.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:500;margin:2px}
+.badge-green{background:#f6ffed;color:#52c41a;border:1px solid #b7eb8f}
+.badge-gray{background:#fafafa;color:#999;border:1px solid #e8e8e8}
+.badge-blue{background:#e6f7ff;color:#1677ff;border:1px solid #91d5ff}
+.toast{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid #e8e8e8;padding:12px 24px;border-radius:10px;font-size:14px;display:none;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+.toast.success{border-left:3px solid #52c41a}.toast.error{border-left:3px solid #ff4d4f}
+.header-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.green{background:#52c41a}.status-dot.red{background:#ff4d4f}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:#fff;border-radius:10px;padding:4px;border:1px solid #e8e8e8}
+.tab{padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;background:transparent;border:none;color:#999;font-weight:500}
+.tab.active{background:#1677ff;color:#fff}
+.tab-content{display:none}.tab-content.active{display:block}
+.empty-state{text-align:center;padding:40px;color:#bbb;font-size:14px}
+.search-card input{width:100%;padding:10px 14px;background:#f5f5f5;border:1px solid #e8e8e8;border-radius:8px;color:#333;font-size:14px;outline:none}
+.search-card input:focus{border-color:#1677ff;background:#fff}
+.saved-indicator{display:inline-block;color:#52c41a;font-size:12px;margin-left:8px;opacity:0;transition:opacity .3s}
+.saved-indicator.show{opacity:1}
+.persona-summary{font-size:12px;color:#999;margin-top:4px;display:none}
+.persona-summary.visible{display:block}
+.skills-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.skill-card{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:14px}
+.skill-card h4{font-size:14px;margin-bottom:4px}
+.skill-card .skill-desc{font-size:12px;color:#999;margin-bottom:8px}
+.skill-card .skill-actions{display:flex;gap:6px}
+@media(max-width:700px){.skills-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header-bar">
-    <div>
-      <h1>微信 AI 管理</h1>
-      <div style="font-size:13px;color:#999;margin-top:2px">
-        <span id="statusText" class="offline"><span class="status-dot red"></span>检查中...</span>
-      </div>
-    </div>
-    <div>
-      <button class="btn btn-outline btn-sm" onclick="refreshContacts()">刷新</button>
-      <button class="btn btn-primary btn-sm" onclick="window.open('/token','_blank')" style="margin-left:6px">Token</button>
-    </div>
-  </div>
+<div class="header-bar">
+  <div><h1>微信 AI 管理</h1><div style="font-size:13px;color:#999;margin-top:2px"><span id="statusText"><span class="status-dot red"></span>检查中...</span></div></div>
+  <div><button class="btn btn-outline btn-sm" onclick="refreshContacts()">刷新</button><button class="btn btn-primary btn-sm" onclick="window.open('/token','_blank')" style="margin-left:6px">Token</button></div>
+</div>
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('contacts',this)">联系人</button>
+  <button class="tab" onclick="switchTab('shared',this)">我的信息</button>
+  <button class="tab" onclick="switchTab('skills',this)">技能管理</button>
+  <button class="tab" onclick="switchTab('token',this)">Token管理</button>
+</div>
 
-  <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('contacts',this)">联系人</button>
-    <button class="tab" onclick="switchTab('shared',this)">我的信息</button>
-    <button class="tab" onclick="switchTab('token',this)">Token管理</button>
-  </div>
+<div id="tab-contacts" class="tab-content active">
+  <div class="search-card" style="margin-bottom:12px"><input id="searchInput" type="text" placeholder="搜索联系人..." oninput="handleSearch()"></div>
+  <div id="contactCount" style="font-size:13px;color:#888;margin-bottom:12px;padding:0 4px"></div>
+  <div id="contactList"></div>
+</div>
 
-  <div id="tab-contacts" class="tab-content active">
-    <div class="search-card" style="margin-bottom:12px">
-      <input id="searchInput" type="text" placeholder="搜索联系人..." oninput="handleSearch()">
-    </div>
-    <div id="contactCount" style="font-size:13px;color:#888;margin-bottom:12px;padding:0 4px"></div>
-    <div id="contactList"></div>
+<div id="tab-shared" class="tab-content">
+  <div class="card"><h2 style="font-size:16px;margin-bottom:16px">我的信息</h2>
+    <div class="form-group"><label>我的名字</label><input id="s_name" placeholder="你的名字"></div>
+    <div class="form-group"><label>年龄</label><input id="s_age" placeholder="如：23"></div>
+    <div class="form-group"><label>出生年份</label><input id="s_birth" placeholder="如：2003"></div>
+    <div class="form-group"><label>当前状态</label><input id="s_status" placeholder="如：刚毕业的大学生"></div>
+    <div class="form-group"><label>通用规则（每行一条）</label><textarea id="s_rules" rows="5" placeholder="每行一条规则..."></textarea></div>
+    <div class="form-group"><label>对我使用的技能（影响所有回复）</label><div id="sharedSkills" style="font-size:12px;color:#999">加载中...</div></div>
+    <button class="btn btn-primary" onclick="saveShared()">保存通用信息</button>
+    <span id="sharedSaved" class="saved-indicator">已保存</span>
   </div>
+</div>
 
-  <div id="tab-shared" class="tab-content">
-    <div class="card">
-      <h2 style="font-size:16px;margin-bottom:16px;color:#333">我的信息</h2>
-      <div class="form-group"><label>我的名字</label><input id="s_name" value="" placeholder="你的名字"></div>
-      <div class="form-group"><label>年龄</label><input id="s_age" value="" placeholder="如：23"></div>
-      <div class="form-group"><label>出生年份</label><input id="s_birth" value="" placeholder="如：2003"></div>
-      <div class="form-group"><label>当前状态</label><input id="s_status" value="" placeholder="如：刚毕业的大学生"></div>
-      <div class="form-group"><label>通用规则（每行一条）</label><textarea id="s_rules" rows="5" placeholder="每行一条规则..."></textarea></div>
-      <button class="btn btn-primary" onclick="saveShared()">保存通用信息</button>
-      <span id="sharedSaved" class="saved-indicator">已保存</span>
-    </div>
-  </div>
+<div id="tab-skills" class="tab-content">
+  <div class="card"><h2 style="font-size:16px;margin-bottom:8px">已激活的全局技能</h2><div id="globalSkills" style="font-size:13px;color:#999">加载中...</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px"><h2 style="font-size:16px">技能列表</h2><button class="btn btn-primary btn-sm" onclick="showCreateSkill()">+ 创建新技能</button></div>
+  <div id="skillsGrid" class="skills-grid"></div>
+  <div id="skillEditArea"></div>
+</div>
 
-  <div id="tab-token" class="tab-content">
-    <div class="card" style="text-align:center;padding:32px">
-      <div style="color:#888;font-size:14px;margin-bottom:10px">剩余Token</div>
-      <div id="tokenBalance" style="font-size:48px;font-weight:bold;color:#1677ff;font-family:Consolas,monospace">--</div>
-    </div>
-    <div style="display:flex;justify-content:center;gap:48px;margin:16px 0">
-      <div style="text-align:center"><div id="tokenUsed" style="font-size:22px;font-weight:bold;color:#555">--</div><div style="font-size:12px;color:#999">已使用</div></div>
-      <div style="text-align:center"><div id="tokenCalls" style="font-size:22px;font-weight:bold;color:#555">--</div><div style="font-size:12px;color:#999">调用次数</div></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><span style="color:#888">许可证</span><span id="tokenLicense" style="color:#555;font-family:Consolas,monospace">--</span></div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:#888">机器码</span><span id="tokenMachine" style="color:#555;font-family:Consolas,monospace">--</span></div>
-    </div>
-    <div class="card" style="background:#fffbe6;border:1px solid #ffe58f;text-align:center">
-      <h3 style="color:#ad6800;margin-bottom:6px">购买Token</h3>
-      <p style="font-size:13px;color:#ad6800">Token用完？点击下方联系购买</p>
-      <a href="https://yuhan.chat/contact.html" target="_blank" style="display:inline-block;margin-top:8px;padding:8px 20px;background:#1677ff;color:#fff;border-radius:6px;text-decoration:none;font-size:13px">联系客服</a>
-    </div>
-    <div style="text-align:center;margin-top:12px"><button class="btn btn-outline btn-sm" onclick="loadTokenData()">刷新</button></div>
-  </div>
-
-  <div id="toast" class="toast"></div>
+<div id="tab-token" class="tab-content">
+  <div class="card" style="text-align:center;padding:32px"><div style="color:#888;font-size:14px;margin-bottom:10px">剩余Token</div><div id="tokenBalance" style="font-size:48px;font-weight:bold;color:#1677ff;font-family:Consolas,monospace">--</div></div>
+  <div style="display:flex;justify-content:center;gap:48px;margin:16px 0"><div style="text-align:center"><div id="tokenUsed" style="font-size:22px;font-weight:bold;color:#555">--</div><div style="font-size:12px;color:#999">已使用</div></div><div style="text-align:center"><div id="tokenCalls" style="font-size:22px;font-weight:bold;color:#555">--</div><div style="font-size:12px;color:#999">调用次数</div></div></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><span style="color:#888">许可证</span><span id="tokenLicense" style="color:#555;font-family:Consolas,monospace">--</span></div><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:#888">机器码</span><span id="tokenMachine" style="color:#555;font-family:Consolas,monospace">--</span></div></div>
+  <div class="card" style="background:#fffbe6;border:1px solid #ffe58f;text-align:center"><h3 style="color:#ad6800;margin-bottom:6px">购买Token</h3><p style="font-size:13px;color:#ad6800">Token用完？点击下方联系购买</p><a href="https://yuhan.chat/contact.html" target="_blank" style="display:inline-block;margin-top:8px;padding:8px 20px;background:#1677ff;color:#fff;border-radius:6px;text-decoration:none;font-size:13px">联系客服</a></div>
+  <div style="text-align:center;margin-top:12px"><button class="btn btn-outline btn-sm" onclick="loadTokenData()">刷新</button></div>
+</div>
+<div id="toast" class="toast"></div>
 </div>
 
 <script>
-const API_BASE = "/api";
-let contactsData = [];
-let personasData = {};
-let whitelistData = [];
+var A="/api",C=[],P={},W=[];
+async function api(u,m,b){try{var o={method:m,headers:{"Content-Type":"application/json"}};if(b)o.body=JSON.stringify(b);var r=await fetch(A+u,o);return await r.json()}catch(e){showToast(e.message,'error');return{error:e.message}}}
+function showToast(m,t){t=t||'success';var e=document.getElementById("toast");e.textContent=m;e.className='toast '+t;e.style.display="block";setTimeout(function(){e.style.display="none"},3000)}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function handleSearch(){R()}
+function loadSharedInfo(){var s=P.共享信息||{},r=P.人设规则&&P.人设规则.通用规则||[];document.getElementById("s_name").value=s.name||"";document.getElementById("s_age").value=s.age||"";document.getElementById("s_birth").value=s.birth_year||"";document.getElementById("s_status").value=s.status||"";document.getElementById("s_rules").value=r.join("\n");SK()}
+async function refreshContacts(){document.getElementById("contactList").innerHTML='<div class="empty-state">加载中...</div>';var d=await api("/contacts","GET");if(d.err){document.getElementById("contactList").innerHTML='<div class="empty-state">'+d.err+'</div>';return}C=d.contacts||[];P=d.personas||{};W=d.whitelist||[];document.getElementById("statusText").innerHTML='<span class="status-dot green"></span>'+C.length+' 个联系人';R();loadSharedInfo()}
+function R(){var l=document.getElementById("contactList"),q=(document.getElementById("searchInput")?document.getElementById("searchInput").value:"").trim().toLowerCase();if(!C.length){l.innerHTML='<div class="empty-state">暂无联系人（请确认微信已登录）</div>';return}var f=C;if(q)f=C.filter(function(c){return(c.remark||'').toLowerCase().indexOf(q)>=0||(c.nick||'').toLowerCase().indexOf(q)>=0||(c.name||'').toLowerCase().indexOf(q)>=0});f.sort(function(a,b){if(a.whitelisted!==b.whitelisted)return a.whitelisted?-1:1;return(a.remark||a.nick||'').localeCompare(b.remark||b.nick||'')});document.getElementById("contactCount").textContent='已开启 '+f.filter(function(c){return c.whitelisted}).length+' / 共 '+f.length+(q?' (搜索"'+q+'")':'');l.innerHTML=f.map(function(c,i){return B(c,i)}).join('')}
+function B(c,i){var p=c.persona||{},pk=p._key||c.name,hp=c.has_persona,wl=c.whitelisted;function Es(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}var h='<div class="card" id="card-'+i+'"><div class="card-header"><div><div class="contact-name">'+Es(c.remark||c.nick||'未知')+(c.remark&&c.nick&&c.remark!==c.nick?'<span class="contact-sub">('+Es(c.nick)+')</span>':'')+'</div><div class="contact-sub">'+(c.sex!=='未知'?c.sex+' · ':'')+Es(c.signature||'')+' '+(wl?'<span class="badge badge-green">已开启</span>':'<span class="badge badge-gray">已关闭</span>')+'</div></div><div class="toggle"><input type="checkbox" id="toggle-'+i+'"'+(wl?' checked':'')+' onchange="TW(\''+Es(c.name)+'\',\''+Es(c.nick||'')+'\',\''+Es(c.remark||'')+'\',this.checked)"><label for="toggle-'+i+'"></label></div></div><div class="persona-summary'+(hp?' visible':'')+'" id="summary-'+i+'">'+(hp?'关系: '+Es(p.关系||'未设置')+' | 称呼: '+Es(p.alias||c.remark||c.nick):'')+'</div><button class="expand-btn" onclick="TE('+i+')">'+(hp?'编辑身份':'添加身份')+'</button><div class="editor" id="editor-'+i+'"><div class="form-group"><label>角色名称</label><input id="e'+i+'_key" value="'+Es(pk)+'" placeholder="联系人称呼，如：小明"></div><div class="form-group"><label>微信昵称</label><input id="e'+i+'_nick" value="'+Es(p.微信昵称||c.nick||'')+'"></div><div class="form-group"><label>备注名</label><input id="e'+i+'_remark" value="'+Es(p.备注名||c.remark||'')+'"></div><div class="form-group"><label>你称呼TA（别名）</label><input id="e'+i+'_alias" value="'+Es(p.alias||'')+'" placeholder="你怎么叫TA，如：老王、宝宝"></div><div class="form-group"><label>你们的关系</label><input id="e'+i+'_relation" value="'+Es(p.关系||'')+'" placeholder="如：同事、闺蜜、前女友"></div><div class="form-group"><label>TA的信息</label><input id="e'+i+'_their" value="'+Es(p.对方信息||'')+'" placeholder="年龄、职业、性格等"></div><div class="form-group"><label>互动方式</label><input id="e'+i+'_interact" value="'+Es(p.互动方式||'')+'" placeholder="聊天语气、禁忌话题等"></div><div class="form-group"><label>聊天风格（每行一条）</label><textarea id="e'+i+'_style" rows="3" placeholder="每行一条，如：\n回复简短\n语气温柔">'+((p.聊天风格||[]).join('\n'))+'</textarea></div><div class="form-group"><label>对此人使用的技能</label><div id="e'+i+'_skills" style="font-size:12px;color:#999">展开后加载</div></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="SP('+i+')">保存</button><button class="btn btn-danger btn-sm" onclick="DP(\''+Es(pk)+'\','+i+')">删除</button><span id="saved-'+i+'" class="saved-indicator">已保存</span></div></div></div>';return h}
+function TE(i){var e=document.getElementById('editor-'+i);e.classList.toggle("open");if(e.classList.contains("open"))LCS(i)}
+function switchTab(n,el){var ts=document.querySelectorAll(".tab"),cs=document.querySelectorAll(".tab-content");for(var i=0;i<ts.length;i++)ts[i].classList.remove("active");for(var i=0;i<cs.length;i++)cs[i].classList.remove("active");el.classList.add("active");document.getElementById('tab-'+n).classList.add("active");if(n==='token')loadTokenData();if(n==='skills')LS();if(n==='shared')SK()}
+async function TW(nm,nk,rm,en){var r=await api("/whitelist/toggle","POST",{name:nm,nick:nk,remark:rm,enabled:en});if(r.ok)showToast(en?'已开启 '+nm:'已关闭 '+nm);setTimeout(refreshContacts,500)}
+async function SP(i){var c=C[i],b=document.querySelector('#editor-'+i+' .btn-primary');b.textContent='保存中...';b.disabled=true;var d={key:document.getElementById('e'+i+'_key').value.trim(),nick:document.getElementById('e'+i+'_nick').value||c.nick,remark:document.getElementById('e'+i+'_remark').value||c.remark,alias:document.getElementById('e'+i+'_alias').value,relation:document.getElementById('e'+i+'_relation').value,their_info:document.getElementById('e'+i+'_their').value,interaction:document.getElementById('e'+i+'_interact').value,chat_style:document.getElementById('e'+i+'_style').value};if(!d.key){showToast('请输入角色名称','error');b.textContent='保存';b.disabled=false;return}var r=await api("/personas","POST",d);b.textContent='保存';b.disabled=false;if(r.ok){var se=document.getElementById('saved-'+i);if(se){se.classList.add('show');setTimeout(function(){se.classList.remove('show')},2000)}var sm=document.getElementById('summary-'+i);if(sm){sm.textContent='关系: '+(d.relation||'未设置')+' | 称呼: '+(d.alias||d.remark||c.nick);sm.classList.add('visible')}showToast('已保存 '+d.key);c.has_persona=true;c.persona={_key:d.key,微信昵称:d.nick,备注名:d.remark,alias:d.alias,关系:d.relation,对方信息:d.their_info,互动方式:d.interaction,聊天风格:d.chat_style.split('\n').filter(function(s){return s.trim()})};setTimeout(async function(){var dd=await api("/contacts","GET");if(!dd.err){C=dd.contacts||[];P=dd.personas||{}}var card=document.getElementById('card-'+i),eo=document.getElementById('editor-'+i);var wasOpen=eo&&eo.classList.contains('open');var fc=C.find(function(cc){return cc.name===c.name});if(fc)C[i]=fc;if(card)card.outerHTML=B(C[i],i);if(wasOpen&&document.getElementById('editor-'+i))document.getElementById('editor-'+i).classList.add('open')},500)}else showToast(r.error||'保存失败','error')}
+async function DP(k,i){if(!confirm('确认删除角色 '+k+'？'))return;var r=await api("/personas/delete","POST",{key:k});if(r.ok){showToast('已删除 '+k);setTimeout(refreshContacts,500)}}
+async function saveShared(){var b=document.querySelector('#tab-shared .btn-primary'),d={name:document.getElementById("s_name").value,age:document.getElementById("s_age").value,birth_year:document.getElementById("s_birth").value,status:document.getElementById("s_status").value,rules:document.getElementById("s_rules").value};b.textContent='保存中...';var r=await api("/shared","POST",d);b.textContent='保存通用信息';if(r.ok){document.getElementById("sharedSaved").classList.add('show');setTimeout(function(){document.getElementById("sharedSaved").classList.remove('show')},2000);showToast("通用信息已保存");loadSharedInfo()}}
+async function loadTokenData(){var d=await api("/token","GET");if(d.error)return;document.getElementById("tokenBalance").textContent=(d.balance||0).toLocaleString();document.getElementById("tokenBalance").style.color=d.balance>100000?'#1677ff':'#ff4d4f';document.getElementById("tokenUsed").textContent=(d.total_used||0).toLocaleString();document.getElementById("tokenCalls").textContent=d.call_count||0;document.getElementById("tokenLicense").textContent=d.license_key||'--';document.getElementById("tokenMachine").textContent=d.machine_id||'--'}
 
-async function api(url, method, body) {
-  try {
-    const opts = { method, headers: {"Content-Type":"application/json"} };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(API_BASE + url, opts);
-    return await r.json();
-  } catch(e) {
-    showToast(e.message, 'error');
-    return {error: e.message};
-  }
-}
+// ====== Skills ======
+async function LS(){var d=await api("/skills","GET");if(d.error)return;var s=d.skills||[],g=d.global||[],ge=document.getElementById("globalSkills");if(!g.length)ge.innerHTML='<span style="color:#999">未激活全局技能</span>';else ge.innerHTML=g.map(function(id){var sk=s.find(function(x){return x.id===id});return'<span class="badge badge-blue" style="cursor:pointer" onclick="TGS(\''+id+'\')" title="点击移除">'+(sk?sk.name:id)+' ✕</span>'}).join(' ');var grid=document.getElementById("skillsGrid");if(!s.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1">暂无技能，点击上方按钮创建</div>';return}grid.innerHTML=s.map(function(sk){return'<div class="skill-card"><h4>'+esc(sk.name)+'</h4><div class="skill-desc">'+esc(sk.description||'暂无描述')+'</div><div class="skill-actions"><button class="btn btn-sm '+(g.indexOf(sk.id)>=0?'btn-green':'btn-outline')+'" onclick="TGS(\''+sk.id+'\')">'+(g.indexOf(sk.id)>=0?'全局✓':'全局')+'</button><button class="btn btn-sm btn-outline" onclick="ES(\''+sk.id+'\')">编辑</button><button class="btn btn-sm btn-danger" onclick="DS(\''+sk.id+'\')">删除</button></div></div>'}).join('')}
+function showCreateSkill(){document.getElementById("skillEditArea").innerHTML='<div class="card"><div class="form-group"><label>技能名称</label><input id="skillName" placeholder="如：童锦程视角"></div><div class="form-group"><label>描述</label><input id="skillDesc" placeholder="简短描述这个技能"></div><div class="form-group"><label>技能内容（直接写提示词）</label><textarea id="skillContent" rows="8" placeholder="描述这个技能的风格和规则..."></textarea></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="SS()">保存</button><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'skillEditArea\').innerHTML=\'\'">取消</button></div></div>'}
+async function ES(sid){var d=await api("/skills","GET"),sk=d.skills.find(function(x){return x.id===sid});if(!sk)return;var r=await fetch("/api/skills/content/"+sid),c="";try{c=await r.text()}catch(e){}document.getElementById("skillEditArea").innerHTML='<div class="card"><div class="form-group"><label>技能名称</label><input id="skillName" value="'+esc(sk.name)+'"></div><div class="form-group"><label>描述</label><input id="skillDesc" value="'+esc(sk.description||'')+'"></div><div class="form-group"><label>技能内容</label><textarea id="skillContent" rows="8">'+esc(c)+'</textarea></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="SS(\''+sid+'\')">更新</button><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'skillEditArea\').innerHTML=\'\'">取消</button></div></div>'}
+async function SS(oldId){var n=document.getElementById("skillName").value.trim(),d=document.getElementById("skillDesc").value.trim(),c=document.getElementById("skillContent").value.trim();if(!n||!c){showToast("名称和内容不能为空","error");return}var r=await api("/skills/save","POST",{name:n,content:c,description:d});if(r.ok){showToast(oldId?"已更新":"已创建");document.getElementById("skillEditArea").innerHTML="";LS()}else showToast(r.error||"失败","error")}
+async function TGS(sid){var d=await api("/skills","GET"),g=d.global||[];await api("/skills/assign","POST",{skill_id:sid,action:g.indexOf(sid)>=0?"remove":"add"});LS();SK()}
+async function DS(sid){if(!confirm("确定删除此技能？"))return;await api("/skills/delete","POST",{skill_id:sid});showToast("已删除");LS()}
+async function SK(){var div=document.getElementById("sharedSkills");if(!div)return;var d=await api("/skills","GET"),s=d.skills||[],g=d.global||[];if(!s.length){div.innerHTML='<span style="color:#999">暂无可选技能，先去"技能管理"创建</span>';return}div.innerHTML=s.map(function(sk){return'<label style="display:inline-block;margin:2px 8px 2px 0;font-size:12px;cursor:pointer"><input type="checkbox" '+(g.indexOf(sk.id)>=0?'checked':'')+' onchange="TGS(\''+sk.id+'\')"> '+sk.name+'</label>'}).join('')}
+async function LCS(i){var c=C[i],div=document.getElementById('e'+i+'_skills');if(!div)return;var d=await api("/skills","GET"),s=d.skills||[],cs=(d.contacts||{})[c.name]||[];if(!s.length){div.innerHTML='<span style="color:#999">暂无可选技能</span>';return}div.innerHTML=s.map(function(sk){return'<label style="display:inline-block;margin:2px 8px 2px 0;font-size:12px;cursor:pointer"><input type="checkbox" '+(cs.indexOf(sk.id)>=0?'checked':'')+' onchange="TCS(\''+sk.id+'\',\''+c.name.replace(/'/g,"\\'")+'\',this.checked)"> '+sk.name+'</label>'}).join('')}
+async function TCS(sid,cn,en){await api("/skills/assign","POST",{skill_id:sid,contact_name:cn,action:en?"add":"remove"})}
 
-function showToast(msg, type) {
-  type = type || 'success';
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = 'toast ' + type;
-  t.style.display = "block";
-  setTimeout(() => t.style.display = "none", 3000);
-}
-
-function handleSearch() { renderContacts(); }
-
-function loadSharedInfo() {
-  const shared = personasData.共享信息 || {};
-  const rules = personasData.人设规则?.通用规则 || [];
-  document.getElementById("s_name").value = shared.name || "";
-  document.getElementById("s_age").value = shared.age || "";
-  document.getElementById("s_birth").value = shared.birth_year || "";
-  document.getElementById("s_status").value = shared.status || "";
-  document.getElementById("s_rules").value = rules.join("\n");
-}
-
-async function refreshContacts() {
-  const list = document.getElementById("contactList");
-  list.innerHTML = '<div class="empty-state">加载中...</div>';
-  const data = await api("/contacts", "GET");
-  if (data.err) { list.innerHTML = '<div class="empty-state">' + data.err + '</div>'; return; }
-  contactsData = data.contacts || [];
-  personasData = data.personas || {};
-  whitelistData = data.whitelist || [];
-  document.getElementById("statusText").innerHTML = '<span class="status-dot green"></span>' + contactsData.length + ' 个联系人';
-  renderContacts();
-  loadSharedInfo();
-}
-
-function renderContacts() {
-  const list = document.getElementById("contactList");
-  const countEl = document.getElementById("contactCount");
-  const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-  if (!contactsData.length) { list.innerHTML = '<div class="empty-state">暂无联系人（请确认微信已登录）</div>'; countEl.textContent = ''; return; }
-  let filtered = contactsData;
-  if (q) filtered = contactsData.filter(c => (c.remark||'').toLowerCase().includes(q) || (c.nick||'').toLowerCase().includes(q) || (c.name||'').toLowerCase().includes(q));
-  filtered.sort((a,b) => { if (a.whitelisted !== b.whitelisted) return a.whitelisted ? -1 : 1; return (a.remark||a.nick||'').localeCompare(b.remark||b.nick||''); });
-  countEl.textContent = '已开启 ' + filtered.filter(c => c.whitelisted).length + ' / 共 ' + filtered.length + (q ? ' (搜索"' + q + '")' : '');
-  list.innerHTML = filtered.map((c, i) => buildCard(c, i)).join('');
-}
-
-function buildCard(c, i) {
-  const p = c.persona || {};
-  const pk = p._key || c.name;
-  const hasPersona = c.has_persona;
-  const whitelisted = c.whitelisted;
-  const Person = function(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
-  return '<div class="card" id="card-' + i + '">' +
-    '<div class="card-header"><div>' +
-    '<div class="contact-name">' + Person(c.remark || c.nick || '未知') + (c.remark && c.nick && c.remark !== c.nick ? '<span class="contact-sub">(' + Person(c.nick) + ')</span>' : '') + '</div>' +
-    '<div class="contact-sub">' + (c.sex !== '未知' ? c.sex + ' · ' : '') + Person(c.signature||'') + ' ' + (whitelisted ? '<span class="badge badge-green">已开启</span>' : '<span class="badge badge-gray">已关闭</span>') + '</div>' +
-    '</div>' +
-    '<div class="toggle"><input type="checkbox" id="toggle-' + i + '"' + (whitelisted?' checked':'') + ' onchange="toggleWhitelist(\'' + Person(c.name) + '\',\'' + Person(c.nick||'') + '\',\'' + Person(c.remark||'') + '\',this.checked)"><label for="toggle-' + i + '"></label></div>' +
-    '</div>' +
-    '<div class="persona-summary' + (hasPersona?' visible':'') + '" id="summary-' + i + '">' + (hasPersona ? '关系: ' + Person(p.关系||'未设置') + ' | 称呼: ' + Person(p.alias||c.remark||c.nick) : '') + '</div>' +
-    '<button class="expand-btn" onclick="toggleEditor(' + i + ')">' + (hasPersona ? '编辑身份' : '添加身份') + '</button>' +
-    '<div class="editor" id="editor-' + i + '">' +
-    '<div class="form-group"><label>角色名称</label><input id="e' + i + '_key" value="' + Person(pk) + '" placeholder="联系人称呼，如：小明"></div>' +
-    '<div class="form-group"><label>微信昵称</label><input id="e' + i + '_nick" value="' + Person(p.微信昵称||c.nick||'') + '"></div>' +
-    '<div class="form-group"><label>备注名</label><input id="e' + i + '_remark" value="' + Person(p.备注名||c.remark||'') + '"></div>' +
-    '<div class="form-group"><label>你称呼TA（别名）</label><input id="e' + i + '_alias" value="' + Person(p.alias||'') + '" placeholder="你怎么叫TA，如：老王、宝宝"></div>' +
-    '<div class="form-group"><label>你们的关系</label><input id="e' + i + '_relation" value="' + Person(p.关系||'') + '" placeholder="如：同事、闺蜜、前女友"></div>' +
-    '<div class="form-group"><label>TA的信息</label><input id="e' + i + '_their" value="' + Person(p.对方信息||'') + '" placeholder="年龄、职业、性格等"></div>' +
-    '<div class="form-group"><label>互动方式</label><input id="e' + i + '_interact" value="' + Person(p.互动方式||'') + '" placeholder="聊天语气、禁忌话题等"></div>' +
-    '<div class="form-group"><label>聊天风格（每行一条）</label><textarea id="e' + i + '_style" rows="3" placeholder="每行一条，如：\n回复简短\n语气温柔\n偶尔撒娇">' + ((p.聊天风格||[]).join('\n')) + '</textarea></div>' +
-    '<div class="actions"><button class="btn btn-primary btn-sm" onclick="savePersona(' + i + ')">保存</button><button class="btn btn-danger btn-sm" onclick="deletePersona(\'' + Person(pk) + '\',' + i + ')">删除</button><span id="saved-' + i + '" class="saved-indicator">已保存</span></div>' +
-    '</div></div>';
-}
-
-function toggleEditor(i) { document.getElementById('editor-' + i).classList.toggle("open"); }
-
-function switchTab(name, el) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-  el.classList.add("active");
-  document.getElementById('tab-' + name).classList.add("active");
-  if (name === 'token') loadTokenData();
-}
-
-async function toggleWhitelist(name, nick, remark, enabled) {
-  const r = await api("/whitelist/toggle", "POST", { name, nick, remark, enabled });
-  if (r.ok) showToast(enabled ? '已开启 ' + name + ' 的AI回复' : '已关闭 ' + name + ' 的AI回复');
-  setTimeout(refreshContacts, 500);
-}
-
-async function savePersona(i) {
-  const c = contactsData[i];
-  const btn = document.querySelector('#editor-' + i + ' .btn-primary');
-  btn.textContent = '保存中...'; btn.disabled = true;
-  const data = {
-    key: document.getElementById('e' + i + '_key').value.trim(),
-    nick: document.getElementById('e' + i + '_nick').value || c.nick,
-    remark: document.getElementById('e' + i + '_remark').value || c.remark,
-    alias: document.getElementById('e' + i + '_alias').value,
-    relation: document.getElementById('e' + i + '_relation').value,
-    their_info: document.getElementById('e' + i + '_their').value,
-    interaction: document.getElementById('e' + i + '_interact').value,
-    chat_style: document.getElementById('e' + i + '_style').value,
-  };
-  if (!data.key) { showToast('请输入角色名称', 'error'); btn.textContent = '保存'; btn.disabled = false; return; }
-  const r = await api("/personas", "POST", data);
-  btn.textContent = '保存'; btn.disabled = false;
-  if (r.ok) {
-    document.getElementById('saved-' + i)?.classList.add('show');
-    setTimeout(() => document.getElementById('saved-' + i)?.classList.remove('show'), 2000);
-    const s = document.getElementById('summary-' + i);
-    if (s) { s.textContent = '关系: ' + (data.relation||'未设置') + ' | 称呼: ' + (data.alias||data.remark||c.nick); s.classList.add('visible'); }
-    showToast('已保存 ' + data.key);
-    c.has_persona = true;
-    c.persona = { _key: data.key, 微信昵称: data.nick, 备注名: data.remark, alias: data.alias, 关系: data.relation, 对方信息: data.their_info, 互动方式: data.interaction, 聊天风格: data.chat_style.split('\n').filter(s => s.trim()) };
-    setTimeout(async () => {
-      const d = await api("/contacts", "GET");
-      if (!d.err) { contactsData = d.contacts || []; personasData = d.personas || {}; }
-      const card = document.getElementById('card-' + i);
-      const editorWasOpen = document.getElementById('editor-' + i)?.classList.contains('open');
-      const fc = contactsData.find(cc => cc.name === c.name);
-      if (fc) contactsData[i] = fc;
-      if (card) { card.outerHTML = buildCard(contactsData[i], i); }
-      if (editorWasOpen) document.getElementById('editor-' + i)?.classList.add('open');
-    }, 500);
-  } else { showToast(r.error || '保存失败', 'error'); }
-}
-
-async function deletePersona(key, i) {
-  if (!confirm('确认删除角色 ' + key + '？')) return;
-  const r = await api("/personas/delete", "POST", { key });
-  if (r.ok) { showToast('已删除 ' + key); setTimeout(refreshContacts, 500); }
-}
-
-async function saveShared() {
-  const btn = document.querySelector('#tab-shared .btn-primary');
-  const data = {
-    name: document.getElementById("s_name").value, age: document.getElementById("s_age").value,
-    birth_year: document.getElementById("s_birth").value, status: document.getElementById("s_status").value,
-    rules: document.getElementById("s_rules").value,
-  };
-  btn.textContent = '保存中...';
-  const r = await api("/shared", "POST", data);
-  btn.textContent = '保存通用信息';
-  if (r.ok) {
-    document.getElementById("sharedSaved").classList.add('show');
-    setTimeout(() => document.getElementById("sharedSaved").classList.remove('show'), 2000);
-    showToast("通用信息已保存");
-    loadSharedInfo();
-  }
-}
-
-async function loadTokenData() {
-  const data = await api("/token", "GET");
-  if (data.error) return;
-  document.getElementById("tokenBalance").textContent = (data.balance||0).toLocaleString();
-  document.getElementById("tokenBalance").style.color = data.balance > 100000 ? '#1677ff' : '#ff4d4f';
-  document.getElementById("tokenUsed").textContent = (data.total_used||0).toLocaleString();
-  document.getElementById("tokenCalls").textContent = data.call_count||0;
-  document.getElementById("tokenLicense").textContent = data.license_key||'--';
-  document.getElementById("tokenMachine").textContent = data.machine_id||'--';
-}
-
-refreshContacts();
-loadTokenData();
+refreshContacts();loadTokenData();
 </script>
 </body>
 </html>

@@ -26,8 +26,10 @@ python -m PyInstaller --onefile --windowed ^
     --add-data "data_dir.py;." ^
     --add-data "persona_engine.py;." ^
     --add-data "long_term_memory.py;." ^
+    --add-data "skill_manager.py;." ^
     --add-data "personas.json;." ^
     --add-data "whitelist.json;." ^
+    --add-data "skills;skills" ^
     --add-data "lib;lib" ^
     --add-data "templates;templates" ^
     --hidden-import "flask" ^
@@ -45,6 +47,7 @@ python -m PyInstaller --onefile --windowed ^
     --hidden-import "bot_state" ^
     --hidden-import "persona_engine" ^
     --hidden-import "long_term_memory" ^
+    --hidden-import "skill_manager" ^
     --hidden-import "patch_filter" ^
     launcher.py
 
