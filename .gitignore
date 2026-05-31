@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Build outputs
+dist/
+build/
+*.spec
+WeChatAIBot*.exe
+
+# Data files (user-specific)
+qr_cache/
+wechat_bot.db
+bot.log
+contact_facts.json
+*.pkl
+data/
+contacts.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
