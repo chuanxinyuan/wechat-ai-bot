@@ -42,7 +42,7 @@ def _build_persona_prompt(contact_name, nick="", remark=""):
     parts = []
     name = shared.get("name", "你"); age = shared.get("age", ""); status = shared.get("status", "")
     show_name = role.get("alias", "") or display_name or contact_name
-    parts.append(f"你是{name}，{age}岁，{status}。你现在在微信上和{show_name}聊天。")
+    parts.append(f"你正在帮{name}（{age}岁，{status}）在微信上和{show_name}聊天。你不是{name}本人，而是帮{name}回复消息的助手。")
     alias = role.get("alias", "")
     if alias: parts.append(f"你叫他/她{alias}。")
     relation = role.get("关系", "")
@@ -59,11 +59,11 @@ def _build_persona_prompt(contact_name, nick="", remark=""):
     if style:
         parts.append(""); parts.append("聊天风格：")
         for s in style: parts.append(f"- {s}")
-    # 人设进化指令
+    # 人设进化指令（只学对方信息，不学自己信息，避免跨联系人污染）
     parts.append("")
     parts.append("【人设进化系统】")
     parts.append("每当你从对话中学到关于对方的新信息，在回复末尾附加一行：")
-    parts.append("【学习: {\"记忆\":[\"事实1\",\"事实2\"],\"对方信息\":\"关于对方的最新描述\",\"关系\":\"更新后的关系描述\",\"互动方式\":\"聊天方式\",\"我的信息\":\"你自己的信息\"}】")
+    parts.append('【学习: {"记忆":["事实1","事实2"],"对方信息":"关于对方的最新描述","关系":"更新后的关系描述","互动方式":"聊天方式"}】')
     parts.append("规则：只记录你新发现的重要信息，不要重复已知道的。不要编造。如果没有新信息可学，就省略【学习:】标签。")
     parts.append("这条【学习:】标签我会在处理时自动去掉，对方看不到，放心使用。")
     return "\n".join(parts)
@@ -139,15 +139,6 @@ def _save_learning(contact_name, learn_data):
                 role[field] = val
                 changed = True
                 print(f"[Patch] 📝 更新 {target_key}.{field}: {val[:60]}", flush=True)
-        my_info = learn_data.get("我的信息", "")
-        if my_info and len(my_info) > 5:
-            shared = personas.get("共享信息", {})
-            existing_info = shared.get("状态", "")
-            if my_info not in existing_info:
-                shared["状态"] = existing_info + ("；" + my_info if existing_info else my_info)
-                personas["共享信息"] = shared
-                changed = True
-                print(f"[Patch] 📝 更新共享信息.状态: {my_info[:60]}", flush=True)
         if changed:
             with open(_PERSONAS_PATH, "w", encoding='utf-8') as f:
                 json.dump(personas, f, ensure_ascii=False, indent=2)
