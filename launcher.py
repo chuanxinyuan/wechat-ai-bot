@@ -728,7 +728,7 @@ def build_main_window():
     option_frame = tk.Frame(root, bg='#f5f5f5')
     option_frame.pack(fill='x', padx=15, pady=(0, 10))
 
-    remember_var = tk.BooleanVar(value=True)
+    remember_var = tk.BooleanVar(value=False)
     remember_cb = tk.Checkbutton(
         option_frame, text='记住登录状态（下次自动登录）',
         variable=remember_var,
@@ -765,14 +765,12 @@ def build_main_window():
 # ============================================================
 
 def setup_config():
-    """Write config.json for chatgpt-on-wechat compatibility."""
+    """Write config.json in data dir with current DeepSeek key."""
     config_path = os.path.join(get_data_dir(), 'config.json')
-    if os.path.exists(config_path):
-        return
     config = {
         "channel_type": "wx",
         "model": "deepseek-chat",
-        "open_ai_api_key": DEEPSEEK_API_KEY,
+        "open_ai_api_key": "",
         "open_ai_api_base": DEEPSEEK_API_BASE,
         "proxy": "",
         "hot_reload": False,
@@ -793,6 +791,18 @@ def setup_config():
         "linkai_api_key": "",
         "linkai_app_code": ""
     }
+
+    # Load existing config — preserve saved API key
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                existing = json.load(f)
+            if existing.get('open_ai_api_key'):
+                config['open_ai_api_key'] = existing['open_ai_api_key']
+                config['open_ai_api_base'] = existing.get('open_ai_api_base', DEEPSEEK_API_BASE)
+        except:
+            pass
+
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
@@ -815,12 +825,24 @@ remember_var = None
 def main():
     global root
 
+    print("[Startup] WeChat AI Bot starting...", flush=True)
+
     # Fix PyInstaller windowed mode: redirect stdout/stderr to file
-    # (itchat needs stdout to exist, even in windowed mode)
-    if getattr(sys, 'frozen', False):
+    # Only redirect when stdout is None (windowed EXE), not console-mode EXE
+    if getattr(sys, 'frozen', False) and sys.stdout is None:
         import io
         sys.stdout = open(get_log_path(), 'a', encoding='utf-8', buffering=1)
         sys.stderr = sys.stdout
+
+    # Clean up old WeChat session for security (prevents auto-login)
+    import glob
+    data_dir = get_data_dir()
+    for old_pkl in glob.glob(os.path.join(data_dir, '**', '*.pkl'), recursive=True):
+        try:
+            os.remove(old_pkl)
+            print(f"[Security] Removed saved session: {old_pkl}")
+        except:
+            pass
 
     root = tk.Tk()
 
@@ -847,6 +869,39 @@ def main():
         return
 
     setup_config()
+
+    # --- Check API key on startup, prompt if missing or expired ---
+    current_key = openai.api_key
+    try:
+        if not current_key or current_key == 'YOUR API KEY':
+            print("[Startup] No DeepSeek API key found, prompting user...")
+            splash.destroy()
+            root.deiconify()
+            new_key = show_api_key_dialog()
+            if new_key:
+                save_api_key(new_key)
+            splash = show_splash()
+            root.withdraw()
+            splash.update()
+        else:
+            splash.update()
+            print(f"[Startup] Verifying API key: {current_key[:8]}...{current_key[-4:]}")
+            if not verify_deepseek_key(current_key):
+                print("[Startup] DeepSeek API key has insufficient balance, prompting user...")
+                splash.destroy()
+                root.deiconify()
+                new_key = show_api_key_dialog()
+                if new_key:
+                    save_api_key(new_key)
+                splash = show_splash()
+                root.withdraw()
+                splash.update()
+            else:
+                print("[Startup] API key OK")
+    except Exception as e:
+        print(f"[Startup] Key check error (non-fatal): {e}")
+        import traceback
+        traceback.print_exc()
 
     # Start admin server
     start_admin_server(5001)
@@ -876,4 +931,19 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        error_msg = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        print(f"[FATAL] Unhandled exception: {error_msg}", flush=True)
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showerror('启动失败',
+                f'程序发生未处理异常:\n\n{type(e).__name__}: {e}\n\n请查看控制台输出。')
+        except:
+            pass
+        raise
