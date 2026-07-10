@@ -40,9 +40,14 @@ def _build_persona_prompt(contact_name, nick="", remark=""):
         if remark and cdata.get("备注名", "") == remark: role = cdata; display_name = cname; break
     if role is None: role = default
     parts = []
-    name = shared.get("name", "你"); age = shared.get("age", ""); status = shared.get("status", "")
+    name = shared.get("name", ""); age = shared.get("age", ""); status = shared.get("status", "")
     show_name = role.get("alias", "") or display_name or contact_name
-    parts.append(f"你正在帮{name}（{age}岁，{status}）在微信上和{show_name}聊天。你不是{name}本人，而是帮{name}回复消息的助手。")
+    # 用户设置了个人信息才提，否则简洁开头
+    if name:
+        user_desc = f"{name}" + (f"（{age}岁" if age else "") + (f"，{status}" if status else "") + (f"）" if age else "")
+        parts.append(f"你正在帮{user_desc}在微信上和{show_name}聊天。你不是{name}本人，而是帮{name}回复消息的助手。")
+    else:
+        parts.append(f"你正在微信上和{show_name}聊天。回复要像真人一样自然，以{show_name}的朋友身份对话。")
     alias = role.get("alias", "")
     if alias: parts.append(f"你叫他/她{alias}。")
     relation = role.get("关系", "")
