@@ -69,12 +69,14 @@ def _first_run_init():
                     shutil.rmtree(path, ignore_errors=True)
                 except: pass
 
-DEEPSEEK_API_KEY = "sk-45a751c021fd4ce88915139c95c17bff"
+# No hardcoded API key — loaded from config.json only
 DEEPSEEK_API_BASE = "https://api.deepseek.com/v1"
 
 import openai
-openai.api_key = DEEPSEEK_API_KEY
 openai.api_base = DEEPSEEK_API_BASE
+
+# Track if user has been notified about expired key
+_key_expired_notified = False
 
 from token_patch import (
     init_token_system, get_token_status, add_user_tokens,
@@ -84,6 +86,20 @@ import bot_state
 import persona_engine
 import skill_manager
 from data_dir import get_data_dir, get_log_path
+
+# Load saved API key from config.json (no hardcoded fallback)
+def _load_api_key():
+    cfg_path = os.path.join(get_data_dir(), 'config.json')
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                saved = json.load(f)
+            return saved.get('open_ai_api_key', '')
+        except:
+            pass
+    return ''
+
+openai.api_key = _load_api_key()
 
 # --- Globals ---
 _token_info = None
@@ -215,8 +231,16 @@ def bot_thread_main(qr_dir, on_qr_ready, on_login_ok, on_logout_handler):
             root.after(0, lambda: update_balance_display())
         except Exception as e:
             import traceback
-            print(f"[Bot] ERROR: {e}")
+            err_str = str(e)
+            print(f"[Bot] ERROR: {err_str}")
             traceback.print_exc()
+
+            # Detect insufficient balance and prompt user to update API key
+            if 'Insufficient Balance' in err_str or 'insufficient' in err_str.lower():
+                global _key_expired_notified
+                if not _key_expired_notified:
+                    _key_expired_notified = True
+                    root.after(0, lambda: _prompt_new_api_key())
 
     os.makedirs(qr_dir, exist_ok=True)
     qr_path = os.path.join(qr_dir, 'QR.png')
@@ -282,6 +306,162 @@ def poll_qr_code(qr_dir):
 
     if _scanning:
         root.after(1000, poll_qr_code, qr_dir)  # Keep polling
+
+
+# ============================================================
+# API Key Verification
+# ============================================================
+
+def verify_deepseek_key(api_key):
+    """Test if the API key is valid with sufficient balance.
+    Returns True if OK, False if insufficient balance or error."""
+    import requests
+    try:
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        data = {
+            'model': 'deepseek-chat',
+            'messages': [{'role': 'user', 'content': 'Hi'}],
+            'max_tokens': 1
+        }
+        resp = requests.post(
+            f'{DEEPSEEK_API_BASE}/chat/completions',
+            headers=headers, json=data, timeout=10
+        )
+        if resp.status_code == 200:
+            return True
+        if resp.status_code == 402:
+            print("[KeyCheck] DeepSeek API: Insufficient Balance")
+            return False
+        print(f"[KeyCheck] DeepSeek API: HTTP {resp.status_code}")
+        return False
+    except Exception as e:
+        print(f"[KeyCheck] Connection error: {e}")
+        return True  # Assume key OK, network issue
+
+
+def show_api_key_dialog():
+    """Show a Tkinter dialog asking user to input a new DeepSeek API key.
+    Returns the new key string, or None if cancelled."""
+    dialog = tk.Toplevel(root)
+    dialog.title('Token 余额不足')
+    dialog.geometry('500x320')
+    dialog.resizable(False, False)
+    dialog.configure(bg='#f5f5f5')
+    dialog.transient(root)
+    dialog.grab_set()
+
+    root.update_idletasks()
+    try:
+        px = root.winfo_x() + (root.winfo_width() - 500) // 2
+        py = root.winfo_y() + (root.winfo_height() - 320) // 2
+        dialog.geometry(f'+{max(0,px)}+{max(0,py)}')
+    except:
+        pass
+
+    header = tk.Frame(dialog, bg='#e74c3c', height=50)
+    header.pack(fill='x')
+    header.pack_propagate(False)
+    tk.Label(header, text='⚠️ DeepSeek API Key 余额不足',
+             font=('Microsoft YaHei', 13, 'bold'), fg='white', bg='#e74c3c').pack(expand=True)
+
+    content = tk.Frame(dialog, bg='white')
+    content.pack(fill='both', expand=True, padx=20, pady=16)
+
+    msg = ('当前 DeepSeek API Key 余额已用完，\n'
+           '机器人将无法回复消息。\n\n'
+           '请输入一个新的 API Key 继续使用：')
+    tk.Label(content, text=msg, font=('Microsoft YaHei', 10),
+             fg='#555', bg='white', wraplength=440, justify='left').pack(anchor='w')
+
+    tk.Label(content, text='DeepSeek API Key：', font=('Microsoft YaHei', 10),
+             fg='#333', bg='white').pack(anchor='w', pady=(10, 4))
+
+    entry = tk.Entry(content, font=('Consolas', 11), bg='#fafafa',
+                     relief='solid', bd=1)
+    entry.pack(fill='x', ipady=6)
+    entry.focus_set()
+
+    def toggle_show():
+        if entry.cget('show') == '*':
+            entry.config(show='')
+            toggle_btn.config(text='隐藏')
+        else:
+            entry.config(show='*')
+            toggle_btn.config(text='显示')
+    toggle_btn = tk.Button(content, text='显示', font=('Microsoft YaHei', 9),
+                           bg='#f0f0f0', relief='flat', command=toggle_show,
+                           cursor='hand2', bd=0)
+    toggle_btn.pack(anchor='e', pady=(4, 0))
+
+    tk.Label(content, text='获取 Key: https://platform.deepseek.com/',
+             font=('Microsoft YaHei', 9), fg='#1677ff', bg='white').pack(anchor='w')
+
+    result = {'key': None}
+
+    def on_submit():
+        key = entry.get().strip()
+        if not key:
+            messagebox.showwarning('提示', '请输入 API Key', parent=dialog)
+            return
+        if not key.startswith('sk-'):
+            if not messagebox.askyesno('确认',
+                    'Key 似乎不是以 sk- 开头，确定要继续吗？', parent=dialog):
+                return
+        result['key'] = key
+        dialog.destroy()
+
+    def on_cancel():
+        result['key'] = None
+        dialog.destroy()
+
+    btn_frame = tk.Frame(content, bg='white')
+    btn_frame.pack(fill='x', pady=(16, 0))
+
+    tk.Button(btn_frame, text='稍后再说', command=on_cancel,
+              font=('Microsoft YaHei', 10), bg='#e0e0e0', fg='#666',
+              relief='flat', padx=16, pady=6, cursor='hand2').pack(side='left')
+    tk.Button(btn_frame, text='💾 保存并使用', command=on_submit,
+              font=('Microsoft YaHei', 10, 'bold'), bg='#1677ff', fg='white',
+              relief='flat', padx=16, pady=6, cursor='hand2').pack(side='right')
+
+    dialog.protocol('WM_DELETE_WINDOW', on_cancel)
+    root.wait_window(dialog)
+    return result['key']
+
+
+def save_api_key(new_key):
+    """Save API key to config.json and update openai.api_key."""
+    config_path = os.path.join(get_data_dir(), 'config.json')
+    config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        except:
+            pass
+    config['open_ai_api_key'] = new_key
+    config['open_ai_api_base'] = DEEPSEEK_API_BASE
+    config['model'] = 'deepseek-chat'
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    openai.api_key = new_key
+    print(f"[KeyCheck] Saved new API key to {config_path}")
+
+
+def _prompt_new_api_key():
+    """Called from bot thread when Insufficient Balance detected."""
+    global _key_expired_notified
+    new_key = show_api_key_dialog()
+    if new_key:
+        save_api_key(new_key)
+        _key_expired_notified = False
+        update_balance_display()
+        messagebox.showinfo('已更新', '新 API Key 已保存，机器人将继续工作。')
+    else:
+        _key_expired_notified = True
 
 
 # ============================================================

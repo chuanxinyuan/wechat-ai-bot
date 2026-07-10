@@ -22,7 +22,21 @@ from data_dir import get_data_dir
 _db = None
 _token_manager = None
 
-DEEPSEEK_API_KEY = "sk-45a751c021fd4ce88915139c95c17bff"
+def _load_patch_api_key():
+    """Load DeepSeek API key from config.json (no hardcoded key)."""
+    try:
+        from data_dir import get_data_dir
+        import json, os
+        cfg_path = os.path.join(get_data_dir(), 'config.json')
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = json.load(f)
+            return cfg.get('open_ai_api_key', '')
+    except:
+        pass
+    return ''
+
+DEEPSEEK_API_KEY = _load_patch_api_key()
 DEEPSEEK_API_BASE = "https://api.deepseek.com/v1"
 
 

@@ -18,6 +18,11 @@ contact_facts.json
 *.pkl
 data/
 contacts.json
+config.json
+personas.json
+whitelist.json
+skills_config.json
+skills/
 
 # IDE
 .vscode/

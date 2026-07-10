@@ -10,7 +10,7 @@ import sys
 def get_data_dir():
     """Get the writable data directory.
     EXE: %APPDATA%/WeChatAIBot
-    Dev: project root
+    Dev: project root (directory containing data_dir.py)
     """
     if getattr(sys, 'frozen', False):
         # PyInstaller: use AppData
@@ -18,7 +18,7 @@ def get_data_dir():
         data_dir = os.path.join(base, 'WeChatAIBot')
     else:
         # Dev: project directory
-        data_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
